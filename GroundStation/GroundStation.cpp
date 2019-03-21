@@ -130,6 +130,15 @@ void onMouse(int event, int x, int y, int, void*)
     }
 }
 
+ros::Publisher pub_bbox;
+std_msgs::Int32MultiArray bbox;
+int id = 0;
+void timerCallback(const ros::TimerEvent& event)
+{
+    pub_bbox.publish(bbox);
+    printf("id=%d\n",id);
+}
+
 int main(int argc, char **argv)
 {
   
@@ -141,14 +150,12 @@ int main(int argc, char **argv)
     cv::namedWindow("GroundStation");
     cv::setMouseCallback("GroundStation", onMouse, 0);    
     
-    ros::Publisher pub_bbox = nh.advertise<std_msgs::Int32MultiArray>("bbox", 40);
-    std_msgs::Int32MultiArray bbox;
+    pub_bbox = nh.advertise<std_msgs::Int32MultiArray>("bbox", 40);
    
-    
     // 接收图像的话题
     imageSubscriber2 = it.subscribe("/camera/rgb/trackmsg", 1, cameraCallback);
     //const auto wait_duration = std::chrono::milliseconds(2000)
-    int id = 0;
+    ros::Timer timer;
     while (ros::ok()){
         
         while (!getImageStatus()) {
@@ -168,9 +175,9 @@ int main(int argc, char **argv)
         if(selected){
             id = read_id(frame);
             bbox.data={0,id,selectRect.x,selectRect.y,selectRect.width,selectRect.height};
-            printf("id=%d\n",id);
-            ros::Duration(1).sleep();
-            pub_bbox.publish(bbox);
+            
+            //ros::Duration(1).sleep();
+            timer = nh.createTimer(ros::Duration(1), timerCallback, true);
             selected=false;
         }
        
